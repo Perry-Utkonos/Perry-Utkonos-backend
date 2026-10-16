@@ -1,0 +1,38 @@
+@host = http://localhost:8080
+@token = eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJiODliZDc1YS0yMWI3LTQxM2ItYjk0ZC0wZDdlYzg4N2Q5ZjEiLCJodHRwOi8vc2NoZW1hcy54bWxzb2FwLm9yZy93cy8yMDA1LzA1L2lkZW50aXR5L2NsYWltcy9uYW1laWRlbnRpZmllciI6ImI4OWJkNzVhLTIxYjctNDEzYi1iOTRkLTBkN2VjODg3ZDlmMSIsInVuaXF1ZV9uYW1lIjoiYm9iIiwianRpIjoiYjA1MDJkZGQtMDFjNy00MWMwLWJmNWMtZWZlNGFlN2I0NzBlIiwibmJmIjoxNzkyMTA4NDM1LCJleHAiOjE3OTIxMTIwMzUsImlzcyI6ImNoYXRhcHAiLCJhdWQiOiJjaGF0YXBwLWNsaWVudHMifQ.9Z61TIcOWOYcwgP8dIputVjKaUNd8B7fqL8Hmr2QYPo
+### Регистрация
+POST {{host}}/api/auth/register
+Content-Type: application/json
+
+{
+  "username": "bob",
+  "email": "bob@example.com",
+  "password": "supersecret123",
+  "displayName": "Bob"
+}
+
+### Логин
+POST {{host}}/api/auth/login
+Content-Type: application/json
+
+{
+  "usernameOrEmail": "bob",
+  "password": "supersecret123"
+}
+
+### Список диалогов
+GET {{host}}/api/conversations
+Authorization: Bearer {{token}} 
+
+### Создать диалог
+POST {{host}}/api/conversations
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "peerId": "b89bd75a-21b7-413b-b94d-0d7ec887d9f1"
+}
+
+### История сообщений
+GET {{host}}/api/conversations/b8514512-6f00-483f-841a-785106b68e85/messages?limit=50
+Authorization: Bearer {{token}}
