@@ -10,7 +10,6 @@ using Microsoft.EntityFrameworkCore;
 public class ConversationRepository : IConversationRepository
 {
     private readonly ChatDbContext _db;
-
     public ConversationRepository(ChatDbContext db) => _db = db;
 
     public async Task<IReadOnlyList<ConversationDto>> GetForUserAsync(Guid userId, CancellationToken ct = default)
@@ -24,39 +23,31 @@ public class ConversationRepository : IConversationRepository
             .ToListAsync(ct);
 
         var convIds = convs.Select(c => c.Id).ToList();
-
         var reads = await _db.MessageReads
             .Where(r => r.UserId == userId && convIds.Contains(r.ConversationId))
             .ToDictionaryAsync(r => r.ConversationId, r => r.LastReadSeq, ct);
 
-        var unreadExact = new Dictionary<Guid, int>();
+        var result = new List<ConversationDto>(convs.Count);
         foreach (var c in convs)
         {
             var lastRead = reads.GetValueOrDefault(c.Id, 0);
-            var count = await _db.Messages.CountAsync(m =>
-                m.ConversationId == c.Id
-                && m.Seq > lastRead
-                && m.SenderId != userId
-                && m.DeletedAt == null, ct);
-            unreadExact[c.Id] = count;
-        }
+            var unread = await _db.Messages.CountAsync(m =>
+                m.ConversationId == c.Id && m.Seq > lastRead
+                && m.SenderId != userId && m.DeletedAt == null, ct);
 
-        return convs.Select(c => new ConversationDto(
-            c.Id,
-            ToUserDto(c.UserAId == userId ? c.UserB : c.UserA),
-            c.LastMessageBody,
-            c.LastMessageAt,
-            c.LastMessageId,
-            c.LastSeq,
-            unreadExact.GetValueOrDefault(c.Id, 0)
-        )).ToList();
+            result.Add(new ConversationDto(
+                c.Id,
+                ToUserDto(c.UserAId == userId ? c.UserB : c.UserA),
+                c.LastMessageBody, c.LastMessageAt, c.LastMessageId,
+                c.LastSeq, unread));
+        }
+        return result;
     }
 
     public async Task<IReadOnlyList<Guid>> GetConversationIdsAsync(Guid userId, CancellationToken ct = default)
         => await _db.Conversations
             .Where(c => c.UserAId == userId || c.UserBId == userId)
-            .Select(c => c.Id)
-            .ToListAsync(ct);
+            .Select(c => c.Id).ToListAsync(ct);
 
     public async Task<ConversationDto> CreateOrGetAsync(Guid currentUserId, Guid userA, Guid userB, CancellationToken ct = default)
     {
@@ -65,14 +56,9 @@ public class ConversationRepository : IConversationRepository
             .Include(c => c.UserB).ThenInclude(u => u.Profile)
             .FirstOrDefaultAsync(c => c.UserAId == userA && c.UserBId == userB, ct);
 
-        if (existing is not null)
-            return ToDto(existing, currentUserId);
+        if (existing is not null) return ToDto(existing, currentUserId);
 
-        var conv = new Conversation
-        {
-            UserAId = userA,
-            UserBId = userB
-        };
+        var conv = new Conversation { UserAId = userA, UserBId = userB };
         _db.Conversations.Add(conv);
 
         _db.MessageReads.Add(new MessageRead { ConversationId = conv.Id, UserId = userA, LastReadSeq = 0 });
@@ -88,11 +74,8 @@ public class ConversationRepository : IConversationRepository
 
     public async Task<MessagePageDto> GetMessagesAsync(Guid conversationId, long? beforeSeq, int limit, CancellationToken ct = default)
     {
-        var query = _db.Messages
-            .Where(m => m.ConversationId == conversationId && m.DeletedAt == null);
-
-        if (beforeSeq.HasValue)
-            query = query.Where(m => m.Seq < beforeSeq.Value);
+        var query = _db.Messages.Where(m => m.ConversationId == conversationId && m.DeletedAt == null);
+        if (beforeSeq.HasValue) query = query.Where(m => m.Seq < beforeSeq.Value);
 
         var items = await query
             .OrderByDescending(m => m.Seq)
@@ -105,31 +88,23 @@ public class ConversationRepository : IConversationRepository
 
         var hasMore = items.Count > limit;
         if (hasMore) items = items.Take(limit).ToList();
-
         items.Reverse();
 
-        return new MessagePageDto(
-            items,
-            hasMore ? items.First().Seq : null,
-            hasMore);
+        return new MessagePageDto(items, hasMore ? items.First().Seq : null, hasMore);
     }
 
     public async Task EnsureParticipantAsync(Guid conversationId, Guid userId, CancellationToken ct = default)
     {
-        var isParticipant = await _db.Conversations.AnyAsync(c =>
+        var ok = await _db.Conversations.AnyAsync(c =>
             c.Id == conversationId && (c.UserAId == userId || c.UserBId == userId), ct);
-
-        if (!isParticipant)
-            throw new ForbiddenException("You are not a participant of this conversation.");
+        if (!ok) throw new ForbiddenException("Not a participant of this conversation.");
     }
 
     private static ConversationDto ToDto(Conversation c, Guid currentUserId)
     {
         var peer = c.UserAId == currentUserId ? c.UserB : c.UserA;
-        return new ConversationDto(
-            c.Id, ToUserDto(peer),
-            c.LastMessageBody, c.LastMessageAt, c.LastMessageId,
-            c.LastSeq, 0);
+        return new ConversationDto(c.Id, ToUserDto(peer),
+            c.LastMessageBody, c.LastMessageAt, c.LastMessageId, c.LastSeq, 0);
     }
 
     private static UserDto ToUserDto(User u) => new(

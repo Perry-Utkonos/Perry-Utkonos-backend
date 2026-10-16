@@ -1,38 +1,82 @@
+### =====================================================================
+### ChatApp API — примеры запросов
+### =====================================================================
+###
+### Авторизации нет. Идентификатор пользователя — в заголовке X-User-Id.
+### Порядок: register → register → создать диалог → отправить через SignalR.
+### =====================================================================
+
 @host = http://localhost:8080
-@token = eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJiODliZDc1YS0yMWI3LTQxM2ItYjk0ZC0wZDdlYzg4N2Q5ZjEiLCJodHRwOi8vc2NoZW1hcy54bWxzb2FwLm9yZy93cy8yMDA1LzA1L2lkZW50aXR5L2NsYWltcy9uYW1laWRlbnRpZmllciI6ImI4OWJkNzVhLTIxYjctNDEzYi1iOTRkLTBkN2VjODg3ZDlmMSIsInVuaXF1ZV9uYW1lIjoiYm9iIiwianRpIjoiYjA1MDJkZGQtMDFjNy00MWMwLWJmNWMtZWZlNGFlN2I0NzBlIiwibmJmIjoxNzkyMTA4NDM1LCJleHAiOjE3OTIxMTIwMzUsImlzcyI6ImNoYXRhcHAiLCJhdWQiOiJjaGF0YXBwLWNsaWVudHMifQ.9Z61TIcOWOYcwgP8dIputVjKaUNd8B7fqL8Hmr2QYPo
-### Регистрация
+@aliceId = 00000000-0000-0000-0000-000000000000
+@bobId   = 00000000-0000-0000-0000-000000000000
+@conversationId = 00000000-0000-0000-0000-000000000000
+
+### Регистрация alice
 POST {{host}}/api/auth/register
 Content-Type: application/json
 
-{
-  "username": "bob",
-  "email": "bob@example.com",
-  "password": "supersecret123",
-  "displayName": "Bob"
-}
+{ "username": "alice", "email": "alice@example.com", "password": "supersecret123" }
 
-### Логин
-POST {{host}}/api/auth/login
+### Регистрация bob
+POST {{host}}/api/auth/register
 Content-Type: application/json
 
-{
-  "usernameOrEmail": "bob",
-  "password": "supersecret123"
-}
+{ "username": "bob", "email": "bob@example.com", "password": "supersecret123" }
 
-### Список диалогов
+### Список диалогов alice
 GET {{host}}/api/conversations
-Authorization: Bearer {{token}} 
+X-User-Id: {{aliceId}}
 
-### Создать диалог
+### Создать диалог alice ↔ bob
 POST {{host}}/api/conversations
-Authorization: Bearer {{token}}
+X-User-Id: {{aliceId}}
 Content-Type: application/json
 
-{
-  "peerId": "b89bd75a-21b7-413b-b94d-0d7ec887d9f1"
-}
+{ "peerId": "{{bobId}}" }
 
 ### История сообщений
-GET {{host}}/api/conversations/b8514512-6f00-483f-841a-785106b68e85/messages?limit=50
-Authorization: Bearer {{token}}
+GET {{host}}/api/conversations/{{conversationId}}/messages?limit=50
+X-User-Id: {{aliceId}}
+
+### Создать платёж
+POST {{host}}/api/payments
+X-User-Id: {{aliceId}}
+Content-Type: application/json
+
+{ "amount": 199.00, "currency": "RUB", "purpose": "tarot_reading" }
+
+### Список платежей
+GET {{host}}/api/payments
+X-User-Id: {{aliceId}}
+
+### Рекомендации
+GET {{host}}/api/recommendations
+X-User-Id: {{aliceId}}
+
+### =====================================================================
+### SignalR (в браузере на http://localhost:8080/swagger → DevTools → Console)
+### =====================================================================
+###
+### 1) Подгрузить клиент:
+###    const s = document.createElement('script');
+###    s.src = 'https://cdn.jsdelivr.net/npm/@microsoft/signalr@8/dist/browser/signalr.min.js';
+###    document.head.appendChild(s);
+###
+### 2) Подключиться и слушать:
+###    const conn = new signalR.HubConnectionBuilder()
+###      .withUrl("http://localhost:8080/hubs/chat?userId=<aliceId>")
+###      .withAutomaticReconnect().build();
+###    conn.on("ReceiveMessage", m => console.log("получено:", m));
+###    conn.on("ReadReceipt", (c, u, s) => console.log("прочитано:", c, u, s));
+###    conn.on("UserTyping", (c, u) => console.log("печатает:", u));
+###    await conn.start();
+###
+### 3) Отправить:
+###    await conn.invoke("SendMessage", "<conversationId>", crypto.randomUUID(), "Привет!");
+###
+### 4) Пометить прочитанным:
+###    await conn.invoke("MarkRead", "<conversationId>", 1);
+###
+### 5) Индикатор набора:
+###    await conn.invoke("Typing", "<conversationId>");
+### =====================================================================

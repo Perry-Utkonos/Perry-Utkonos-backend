@@ -13,10 +13,3 @@ public record MessageDto(
     DateTime CreatedAt,
     DateTime? EditedAt,
     DateTime? DeletedAt);
-
-public record SendMessageRequest(
-    Guid ConversationId,
-    Guid ClientMessageId,
-    string Body);
-
-public record MarkReadRequest(long LastReadSeq);

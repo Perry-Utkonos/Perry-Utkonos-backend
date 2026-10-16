@@ -37,7 +37,6 @@ public class ConversationService : IConversationService
         Guid userId, Guid conversationId, long? beforeSeq, int limit, CancellationToken ct = default)
     {
         if (limit is < 1 or > 100) limit = 50;
-
         await _conversations.EnsureParticipantAsync(conversationId, userId, ct);
         return await _conversations.GetMessagesAsync(conversationId, beforeSeq, limit, ct);
     }

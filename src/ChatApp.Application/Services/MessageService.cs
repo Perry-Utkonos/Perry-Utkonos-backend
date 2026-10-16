@@ -16,10 +16,8 @@ public class MessageService : IMessageService
     {
         if (string.IsNullOrWhiteSpace(body))
             throw new ValidationException("Message body is empty.");
-
         if (body.Length > 8000)
             throw new ValidationException("Message body is too long.");
-
         if (clientMessageId == Guid.Empty)
             throw new ValidationException("clientMessageId is required.");
 

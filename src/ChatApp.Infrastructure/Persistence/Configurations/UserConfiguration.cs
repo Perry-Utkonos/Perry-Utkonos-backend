@@ -10,7 +10,6 @@ public class UserConfiguration : IEntityTypeConfiguration<User>
     {
         b.ToTable("users");
         b.HasKey(x => x.Id);
-
         b.Property(x => x.Id).HasColumnName("id");
         b.Property(x => x.Username).HasColumnName("username").IsRequired().HasMaxLength(32);
         b.Property(x => x.Email).HasColumnName("email").IsRequired().HasMaxLength(255);
@@ -36,9 +35,7 @@ public class UserProfileConfiguration : IEntityTypeConfiguration<UserProfile>
     public void Configure(EntityTypeBuilder<UserProfile> b)
     {
         b.ToTable("user_profile");
-        // Shared PK: PK = FK = user_id — связь 1:1 с users
         b.HasKey(x => x.UserId);
-
         b.Property(x => x.UserId).HasColumnName("user_id");
         b.Property(x => x.Bio).HasColumnName("bio").HasMaxLength(500);
         b.Property(x => x.AvatarUrl).HasColumnName("avatar_url").HasMaxLength(500);
@@ -46,5 +43,23 @@ public class UserProfileConfiguration : IEntityTypeConfiguration<UserProfile>
         b.Property(x => x.Gender).HasColumnName("gender").HasMaxLength(16);
         b.Property(x => x.Metadata).HasColumnName("metadata").HasColumnType("jsonb");
         b.Property(x => x.CreatedAt).HasColumnName("created_at");
+    }
+}
+
+public class RefreshTokenConfiguration : IEntityTypeConfiguration<RefreshToken>
+{
+    public void Configure(EntityTypeBuilder<RefreshToken> b)
+    {
+        b.ToTable("refresh_tokens");
+        b.HasKey(x => x.Id);
+        b.Property(x => x.Id).HasColumnName("id");
+        b.Property(x => x.UserId).HasColumnName("user_id");
+        b.Property(x => x.TokenHash).HasColumnName("token_hash").IsRequired().HasMaxLength(128);
+        b.Property(x => x.ExpiresAt).HasColumnName("expires_at");
+        b.Property(x => x.CreatedAt).HasColumnName("created_at");
+        b.Property(x => x.RevokedAt).HasColumnName("revoked_at");
+        b.HasIndex(x => x.TokenHash).IsUnique();
+        b.HasOne(x => x.User).WithMany(u => u.RefreshTokens)
+            .HasForeignKey(x => x.UserId).OnDelete(DeleteBehavior.Cascade);
     }
 }

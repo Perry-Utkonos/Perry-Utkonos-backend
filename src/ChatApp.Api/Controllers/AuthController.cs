@@ -8,19 +8,14 @@ using Microsoft.AspNetCore.Mvc;
 [Route("api/auth")]
 public class AuthController : ControllerBase
 {
-    private readonly IAuthService _auth;
+    private readonly IUserService _users;
+    public AuthController(IUserService users) => _users = users;
 
-    public AuthController(IAuthService auth) => _auth = auth;
-
+    /// <summary>
+    /// Создать пользователя. Токен не выдаётся — для последующих запросов
+    /// используйте заголовок X-User-Id.
+    /// </summary>
     [HttpPost("register")]
-    public Task<AuthResponse> Register([FromBody] RegisterRequest req)
-        => _auth.RegisterAsync(req);
-
-    [HttpPost("login")]
-    public Task<AuthResponse> Login([FromBody] LoginRequest req)
-        => _auth.LoginAsync(req);
-
-    [HttpPost("refresh")]
-    public Task<AuthResponse> Refresh([FromBody] RefreshRequest req)
-        => _auth.RefreshAsync(req.RefreshToken);
+    public Task<UserDto> Register([FromBody] RegisterRequest req)
+        => _users.CreateAsync(req);
 }

@@ -8,11 +8,12 @@ obj/
 # Rider
 .idea/
 
-# Env
+# Env / secrets
 .env
 appsettings.Development.json
 appsettings.Local.json
 appsettings.*.Local.json
+appsettings.json
 
 # OS
 .DS_Store

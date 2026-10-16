@@ -17,14 +17,8 @@ public class ExceptionHandlingMiddleware
 
     public async Task InvokeAsync(HttpContext ctx)
     {
-        try
-        {
-            await _next(ctx);
-        }
-        catch (Exception ex)
-        {
-            await HandleAsync(ctx, ex);
-        }
+        try { await _next(ctx); }
+        catch (Exception ex) { await HandleAsync(ctx, ex); }
     }
 
     private async Task HandleAsync(HttpContext ctx, Exception ex)
@@ -43,18 +37,14 @@ public class ExceptionHandlingMiddleware
         if (status == HttpStatusCode.InternalServerError)
             _logger.LogError(ex, "Unhandled exception");
 
-        if (ctx.Response.HasStarted)
-            return;
+        if (ctx.Response.HasStarted) return;
 
         ctx.Response.StatusCode = (int)status;
         ctx.Response.ContentType = "application/json";
-
-        var payload = JsonSerializer.Serialize(new
+        await ctx.Response.WriteAsync(JsonSerializer.Serialize(new
         {
             error = message,
             status = (int)status
-        });
-
-        await ctx.Response.WriteAsync(payload);
+        }));
     }
 }

@@ -1,4 +1,4 @@
-﻿namespace ChatApp.Infrastructure.Persistence.Configurations;
+namespace ChatApp.Infrastructure.Persistence.Configurations;
 
 using ChatApp.Domain.Entities;
 using Microsoft.EntityFrameworkCore;
@@ -10,7 +10,6 @@ public class OutboxMessageConfiguration : IEntityTypeConfiguration<OutboxMessage
     {
         b.ToTable("outbox_messages");
         b.HasKey(x => x.Id);
-
         b.Property(x => x.Id).HasColumnName("id");
         b.Property(x => x.Type).HasColumnName("type").IsRequired().HasMaxLength(64);
         b.Property(x => x.Payload).HasColumnName("payload").IsRequired().HasColumnType("jsonb");
@@ -18,10 +17,5 @@ public class OutboxMessageConfiguration : IEntityTypeConfiguration<OutboxMessage
         b.Property(x => x.PublishedAt).HasColumnName("published_at");
         b.Property(x => x.Error).HasColumnName("error").HasMaxLength(2000);
         b.Property(x => x.Attempts).HasColumnName("attempts").HasDefaultValue(0);
-
-        // Частичный индекс: publisher читает только неопубликованные
-        b.HasIndex(x => x.CreatedAt)
-         .HasDatabaseName("ix_outbox_unpublished")
-         .HasFilter("published_at IS NULL");
     }
 }
