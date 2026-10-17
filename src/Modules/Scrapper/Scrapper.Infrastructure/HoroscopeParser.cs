@@ -11,7 +11,7 @@ public interface IHoroscopeParser
 public class HoroscopeParser : IHoroscopeParser
 {
     private readonly HttpClient _httpClient;
-    private readonly IConfiguration _config; // Например, URL сайта берем из appsettings
+    private readonly IConfiguration _config; //URL сайта берем из appsettings
 
     public HoroscopeParser(HttpClient httpClient, IConfiguration config)
     {
@@ -21,8 +21,6 @@ public class HoroscopeParser : IHoroscopeParser
 
     public async Task<string> FetchHoroscopeAsync(string zodiacSign, CancellationToken ct = default)
     {
-        // В реальности тут будет URL конкретного сайта, например:
-        // var url = $"https://horo.mail.ru/prediction/{zodiacSign}/today/";
 
         // Для примера возьмем заглушку (пока не знаем точный сайт)
         var url = $"https://example.com/horoscope/{zodiacSign}";
