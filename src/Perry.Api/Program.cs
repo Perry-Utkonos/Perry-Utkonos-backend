@@ -1,19 +1,31 @@
-// Host/Program.cs
+using MediatR;
+using Perry.Api.BackgroundServices;
+
 var builder = WebApplication.CreateBuilder(args);
 
-// 1. Register MediatR (Scans all modules for handlers)
+builder.WebHost.UseUrls("http://localhost:7000");
+
+builder.Services.AddControllers();
+
+builder.Services.AddEndpointsApiExplorer();
+builder.Services.AddSwaggerGen();
+
 builder.Services.AddMediatR(cfg =>
     cfg.RegisterServicesFromAssembly(typeof(Program).Assembly));
 
-// 2. Register the Queue as a Singleton (shared between API and Worker)
 builder.Services.AddSingleton<TaskQueue>();
-
-// 3. Register the Schedule (The Heart) as a Hosted Service
 builder.Services.AddHostedService<ScheduleWorker>();
 
 var app = builder.Build();
 
-// 4. Map the Gateway Endpoints
-app.MapScrapeEndpoints();
+app.UseSwagger();
+app.UseSwaggerUI(c =>
+{
+    c.SwaggerEndpoint("/swagger/v1/swagger.json", "Perry.Api v1");
+});
+
+
+app.UseAuthorization();
+app.MapControllers();
 
 app.Run();

@@ -1,6 +1,9 @@
-@Perry.Api_HostAddress = http://localhost:5222
+@host = http://localhost:7000
 
-GET {{Perry.Api_HostAddress}}/weatherforecast/
-Accept: application/json
+### Отправка URL в Scrapper
+POST {{host}}/api/scrape
+Content-Type: application/json
 
-###
+{
+  "url": "https://example.com"
+}
