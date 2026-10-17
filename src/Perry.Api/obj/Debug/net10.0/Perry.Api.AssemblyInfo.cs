@@ -13,7 +13,7 @@ using System.Reflection;
 [assembly: System.Reflection.AssemblyCompanyAttribute("Perry.Api")]
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Debug")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+a912576266579e62e316d826a6f38c7714daf758")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+b939e135c8b63056132ff94203276cd87a817442")]
 [assembly: System.Reflection.AssemblyProductAttribute("Perry.Api")]
 [assembly: System.Reflection.AssemblyTitleAttribute("Perry.Api")]
 [assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0")]

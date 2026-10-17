@@ -15,6 +15,8 @@
   <ItemGroup>
     <ProjectReference Include="..\Modules\Scrapper\Scrapper.Contracts\Scrapper.Contracts.csproj" />
     <ProjectReference Include="..\Modules\Scrapper\Scrapper.Application\Scrapper.Application.csproj" />
+    <ProjectReference Include="..\Modules\Auth\Auth.Infrastructure\Auth.Infrastructure.csproj" />
+    <ProjectReference Include="..\Modules\Auth\Auth.Contracts\Auth.Contracts.csproj" />
   </ItemGroup>
 
 </Project>
