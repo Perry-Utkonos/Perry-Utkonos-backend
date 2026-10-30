@@ -9,4 +9,13 @@
     <Project Path="src/Modules/Auth/Auth.Domain/Auth.Domain.csproj" />
     <Project Path="src/Modules/Auth/Auth.Infrastructure/Auth.Infrastructure.csproj" />
   </Folder>
+  <Folder Name="/src/Modules/Chat/">
+    <Project Path="src/Modules/Chat/Chat.Domain/Chat.Domain.csproj" />
+    <Project Path="src/Modules/Chat/Chat.Contracts/Chat.Contracts.csproj" />
+    <Project Path="src/Modules/Chat/Chat.Application/Chat.Application.csproj" />
+    <Project Path="src/Modules/Chat/Chat.Infrastructure/Chat.Infrastructure.csproj" />
+  </Folder>
+  <Folder Name="/tools/">
+    <Project Path="tools/LocalLauncher/LocalLauncher.csproj" />
+  </Folder>
 </Solution>

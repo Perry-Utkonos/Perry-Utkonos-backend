@@ -1,4 +1,4 @@
-﻿{
+{
   "$schema": "https://json.schemastore.org/launchsettings.json",
   "profiles": {
     "http": {
@@ -17,6 +17,18 @@
       "applicationUrl": "https://localhost:7267;http://localhost:5222",
       "environmentVariables": {
         "ASPNETCORE_ENVIRONMENT": "Development"
+      }
+    },
+    "ChatLocal": {
+      "commandName": "Project",
+      "dotnetRunMessages": true,
+      "launchBrowser": false,
+      "applicationUrl": "http://localhost:7000",
+      "environmentVariables": {
+        "ASPNETCORE_ENVIRONMENT": "Development",
+        "Chat__Enabled": "true",
+        "Chat__Local__Enabled": "true",
+        "ConnectionStrings__Chat": "Host=127.0.0.1;Port=55432;Database=chat_local;Username=chat_local;Password=chat_local_only"
       }
     }
   }
