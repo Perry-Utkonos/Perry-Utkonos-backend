@@ -2,4 +2,13 @@
   <Folder Name="/src/">
     <Project Path="src/Perry.Api/Perry.Api.csproj" />
   </Folder>
+  <Folder Name="/src/Modules/Chat/">
+    <Project Path="src/Modules/Chat/Chat.Domain/Chat.Domain.csproj" />
+    <Project Path="src/Modules/Chat/Chat.Contracts/Chat.Contracts.csproj" />
+    <Project Path="src/Modules/Chat/Chat.Application/Chat.Application.csproj" />
+    <Project Path="src/Modules/Chat/Chat.Infrastructure/Chat.Infrastructure.csproj" />
+  </Folder>
+  <Folder Name="/tools/">
+    <Project Path="tools/LocalLauncher/LocalLauncher.csproj" />
+  </Folder>
 </Solution>

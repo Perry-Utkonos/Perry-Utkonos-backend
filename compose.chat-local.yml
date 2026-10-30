@@ -1,0 +1,21 @@
+name: perry-chat-local
+services:
+  postgres:
+    image: postgres:17
+    environment:
+      POSTGRES_DB: chat_local
+      POSTGRES_USER: chat_local
+      POSTGRES_PASSWORD: chat_local_only
+    ports:
+      - "127.0.0.1:55432:5432"
+    volumes:
+      - chat-data:/var/lib/postgresql/data
+      - ./src/Modules/Chat/Database/001_InitialChat.sql:/docker-entrypoint-initdb.d/001-chat.sql:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U chat_local -d chat_local"]
+      interval: 3s
+      timeout: 3s
+      retries: 30
+      start_period: 5s
+volumes:
+  chat-data:

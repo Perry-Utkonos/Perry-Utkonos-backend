@@ -12,4 +12,11 @@
     <PackageReference Include="Swashbuckle.AspNetCore" Version="10.3.0" />
   </ItemGroup>
 
+  <ItemGroup>
+    <ProjectReference Include="../Modules/Chat/Chat.Infrastructure/Chat.Infrastructure.csproj" />
+    <PackageReference Include="Microsoft.AspNetCore.Authentication.JwtBearer" Version="10.0.5" />
+  </ItemGroup>
+  <ItemGroup>
+    <Content Include="Chat/Local/Pages/**" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
+  </ItemGroup>
 </Project>
