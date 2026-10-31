@@ -1,0 +1,146 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Локальный чат · Perry</title>
+  <style>
+    *{box-sizing:border-box}body{font:16px/1.5 system-ui,sans-serif;margin:0;background:#f3f5f9;color:#19253a}
+    main{max-width:1000px;margin:32px auto;padding:0 20px}h1{font-size:28px;margin-bottom:4px}p{margin:4px 0 16px;color:#526079}
+    .panel{background:white;border:1px solid #dce2ed;border-radius:14px;padding:18px;margin-bottom:16px}
+    .row{display:flex;gap:10px;align-items:center;flex-wrap:wrap}button,select,input{font:inherit;padding:9px 12px;border:1px solid #c6cfdf;border-radius:8px}
+    button{background:#245bce;color:white;border-color:#245bce;cursor:pointer}button:disabled{opacity:.5;cursor:default}
+    button.secondary{background:white;color:#245bce}label{display:flex;align-items:center;gap:8px}#status{margin-top:12px;font-size:14px;color:#526079}
+    .layout{display:grid;grid-template-columns:260px 1fr;gap:16px}.layout>.panel{margin:0;min-width:0}
+    h2{font-size:17px;margin:0 0 12px}#dialogs{display:flex;flex-direction:column;gap:8px;margin:14px 0}
+    #dialogs button{text-align:left;background:white;color:#19253a;border-color:#dce2ed}#dialogs button.active{background:#edf3ff;border-color:#245bce}
+    #messages{height:360px;overflow:auto;display:flex;flex-direction:column;gap:10px;padding:8px;background:#f7f9fc;border-radius:10px}
+    .message{max-width:85%;padding:10px 12px;background:white;border:1px solid #e0e6ef;border-radius:12px;align-self:flex-start;overflow-wrap:anywhere;white-space:pre-wrap}
+    .mine{align-self:flex-end;background:#e9f1ff;border-color:#d1e1ff}.meta{display:block;font-size:12px;color:#596985;margin-top:4px}
+    #compose{display:flex;gap:8px;margin-top:12px}#body{flex:1;min-width:0}#error{color:#ad2239;white-space:pre-wrap;margin-top:12px}
+    .note{font-size:13px}#refresh{margin-top:8px} @media(max-width:700px){.layout{grid-template-columns:1fr}#messages{height:300px}main{margin-top:18px}}
+  </style>
+</head>
+<body>
+<main>
+  <h1>Локальный чат</h1>
+  <p>Откройте эту страницу в двух вкладках: войдите как alice и bob, создайте диалог и отправьте сообщение.</p>
+  <section class="panel">
+    <div class="row">
+      <label for="user">Пользователь <select id="user"><option>alice</option><option>bob</option><option>charlie</option></select></label>
+      <button id="login">Войти</button>
+      <a href="/swagger" target="_blank" rel="noopener">Swagger</a>
+    </div>
+    <div id="status" role="status">Проверка PostgreSQL…</div>
+    <div id="error" role="alert"></div>
+  </section>
+  <div class="layout">
+    <section class="panel">
+      <h2>Диалоги</h2>
+      <label for="peer">С кем <select id="peer" disabled></select></label>
+      <button id="create" style="margin-top:10px" disabled>Открыть диалог</button>
+      <div id="dialogs"></div>
+      <button id="refresh" class="secondary" disabled>Обновить</button>
+    </section>
+    <section class="panel">
+      <h2 id="title">Выберите диалог</h2>
+      <div id="messages" aria-label="Сообщения"></div>
+      <form id="compose">
+        <input id="body" aria-label="Текст сообщения" placeholder="Сообщение…" maxlength="4000" autocomplete="off" disabled>
+        <button id="send" disabled>Отправить</button>
+      </form>
+      <p class="note" style="margin-top:12px">Здесь показаны последние 50 сообщений. Это страница ручной проверки, вход доступен только демонстрационным пользователям.</p>
+    </section>
+  </div>
+</main>
+<script src="/chat-local/signalr.min.js"></script>
+<script>
+'use strict';
+const el=id=>document.getElementById(id);
+let token='',me=null,users=[],conversations=[],active=null,hub=null,pending=null,sending=false,loginVersion=0;
+const messages=new Map();
+function status(text){el('status').textContent=text;}
+function fail(error){el('error').textContent=error.message||String(error);}
+function clearError(){el('error').textContent='';}
+function name(id){return users.find(u=>u.id===id)?.alias||id;}
+function peer(c){return c.userA===me.id?c.userB:c.userA;}
+async function api(path,method='GET',body){
+  const headers={};if(token)headers.Authorization='Bearer '+token;
+  if(body!==undefined)headers['Content-Type']='application/json';
+  const response=await fetch(path,{method,headers,body:body===undefined?undefined:JSON.stringify(body),cache:'no-store'});
+  if(!response.ok){let text='';try{const problem=await response.json();text=problem.detail||problem.message||problem.title||'';}catch{}
+    throw new Error(response.status+' '+text+(response.status===401?' — войдите заново.':''));}
+  return response.status===204?null:response.json();
+}
+function drawDialogs(){
+  el('dialogs').replaceChildren();
+  for(const c of conversations){const button=document.createElement('button');button.type='button';button.textContent=name(peer(c));
+    button.classList.toggle('active',active?.id===c.id);button.onclick=()=>select(c).catch(fail);el('dialogs').append(button);}
+}
+function drawMessages(){
+  const list=el('messages'),nearBottom=list.scrollHeight-list.scrollTop-list.clientHeight<80;list.replaceChildren();
+  for(const message of [...messages.values()].sort((a,b)=>a.sequence-b.sequence)){
+    const row=document.createElement('div');row.className='message'+(message.senderId===me.id?' mine':'');
+    const text=document.createElement('span');text.textContent=message.body;
+    const meta=document.createElement('span');meta.className='meta';meta.textContent=name(message.senderId)+' · '+new Date(message.createdAt).toLocaleTimeString()+' · #'+message.sequence;
+    row.append(text,meta);list.append(row);
+  }
+  if(nearBottom)list.scrollTop=list.scrollHeight;
+}
+async function markRead(){
+  if(!active||document.visibilityState!=='visible'||!messages.size)return;
+  const last=Math.max(...[...messages.values()].map(m=>m.sequence));
+  await api('/api/chat/conversations/'+active.id+'/read','PUT',{sequence:last});
+}
+async function loadDialogs(){conversations=await api('/api/chat/conversations');drawDialogs();}
+async function loadHistory(){
+  if(!active)return;
+  const id=active.id;const list=await api('/api/chat/conversations/'+id+'/messages?limit=50');
+  if(active?.id!==id)return;
+  // Keep messages that arrived through SignalR while this request was in flight.
+  for(const message of list)messages.set(message.id,message);
+  drawMessages();el('messages').scrollTop=el('messages').scrollHeight;await markRead();
+}
+async function select(c){
+  clearError();active=c;messages.clear();el('messages').replaceChildren();el('title').textContent='Диалог с '+name(peer(c));
+  el('body').disabled=false;el('send').disabled=false;drawDialogs();await loadHistory();
+}
+el('login').onclick=async()=>{
+  clearError();const version=++loginVersion;el('login').disabled=true;
+  try{
+    if(hub)await hub.stop();token='';me=null;active=null;pending=null;messages.clear();el('messages').replaceChildren();
+    el('dialogs').replaceChildren();el('title').textContent='Выберите диалог';el('body').disabled=true;el('send').disabled=true;
+    users=await api('/api/chat-local/users');
+    const login=await api('/api/chat-local/token','POST',{alias:el('user').value});token=login.accessToken;me=login.user;
+    el('peer').replaceChildren();for(const u of users.filter(u=>u.id!==me.id)){const option=document.createElement('option');option.value=u.id;option.textContent=u.alias;el('peer').append(option);}
+    hub=new signalR.HubConnectionBuilder().withUrl('/hubs/chat',{accessTokenFactory:()=>token}).withAutomaticReconnect().build();
+    hub.on('MessageCreated',async event=>{
+      if(version!==loginVersion)return;
+      try{const message=event.message;if(active?.id===message.conversationId){messages.set(message.id,message);drawMessages();await markRead();}await loadDialogs();}catch(error){fail(error);}
+    });
+    hub.onreconnecting(()=>status('Соединение прервано, переподключение…'));
+    hub.onreconnected(async()=>{try{status('В сети: '+me.alias);await loadDialogs();await loadHistory();}catch(error){fail(error);}});
+    hub.onclose(()=>{if(version===loginVersion)status('Соединение закрыто. Войдите заново.');});
+    await hub.start();await loadDialogs();status('В сети: '+me.alias+' · PostgreSQL и SignalR подключены');
+    el('peer').disabled=false;el('create').disabled=false;el('refresh').disabled=false;
+  }catch(error){el('peer').disabled=true;el('create').disabled=true;el('refresh').disabled=true;fail(error);status('Не удалось подключиться.');}
+  finally{el('login').disabled=false;}
+};
+el('create').onclick=async()=>{
+  clearError();try{const c=await api('/api/chat/conversations','POST',{peerId:el('peer').value});await loadDialogs();await select(c);}catch(error){fail(error);}
+};
+el('refresh').onclick=async()=>{clearError();try{await loadDialogs();await loadHistory();}catch(error){fail(error);}};
+el('compose').onsubmit=async event=>{
+  event.preventDefault();if(sending||!active)return;const body=el('body').value;if(!body.trim())return;
+  if(!pending||pending.body!==body||pending.conversationId!==active.id)pending={body,clientMessageId:crypto.randomUUID(),conversationId:active.id};
+  sending=true;el('send').disabled=true;clearError();
+  try{const message=await api('/api/chat/conversations/'+pending.conversationId+'/messages','POST',{body:pending.body,clientMessageId:pending.clientMessageId});
+    if(active?.id===message.conversationId){messages.set(message.id,message);drawMessages();}
+    if(el('body').value===body)el('body').value='';pending=null;
+  }catch(error){fail(error);}finally{sending=false;el('send').disabled=!active;}
+};
+document.addEventListener('visibilitychange',()=>{if(me)markRead().catch(fail);});
+api('/api/chat-local/health').then(()=>status('PostgreSQL готова. Выберите пользователя и войдите.')).catch(fail);
+</script>
+</body>
+</html>
